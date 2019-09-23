@@ -139,7 +139,7 @@ plot_t_dist <- function(probs, df = 1){
     theme(plot.title = element_text(size = 12))
 }
 # run plot_t_dist with different dfs
-dfs <- c(999, 500, 20,10, 5, 1)
+dfs <- c(999, 500, 20,10, 5, 1) %>% sort()
 t_dists <- map(dfs, ~plot_t_dist(probs, .x))
 # use cowplot to put charts on the same plot
 plot_grid(plotlist= t_dists)
