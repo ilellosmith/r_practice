@@ -34,12 +34,10 @@ set.seed(12345)
 # binom == binom 
 
 # Sample from uniform dist ----
-
-# Plot PDFs, CDFs and QQplots of functions 
 ?runif()
 # sample 1000 values between 0 and 1 from uniform dist
 probs <-runif(1000, min = 0, max = 1)
-# plot the probability distribution of the density of these values 
+# plot the probability distribution of these values 
 probs %>% 
   enframe() %>%
   ggplot() +
