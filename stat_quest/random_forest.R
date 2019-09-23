@@ -49,4 +49,25 @@ dat <- dat %>%
             , exang
             , slope) 
             , as.factor)
+# preview data
 str(dat)
+# use all other variables to imput hd
+#   > 4-6 iterations is generlly pretty good
+#   > OOB is out of bag error. If does not get smaller, these estimates 
+#     are about as good as we'll get
+imp <- dat %>% rfImpute(hd ~., data =., iter = 6)
+# run random forest and return proximity matrix 
+model <- imp %>% randomForest(hd~., data =., proximity = T)
+# view output of model 
+#     > three types of RFs: 
+#       - classification (this case, sort ppl into categories), 
+#       - regression - predict a continuous variable
+#       - unsupervised - happens if you don't specify a formula
+#     > number of variables tried at each split:
+#       - number of vars (aka columns of data tried at each node)
+#       - defaults: 
+#             ~ classification trees : sqrt(<number of vars>)
+#             ~ regression trees: <number of vars> / 3
+#             ~ but, should try to find something better than the default
+model
+
