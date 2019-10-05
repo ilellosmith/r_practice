@@ -47,7 +47,8 @@ colnames(dat) <- c(
   , 'thal'
   , 'hd'
 )
-# replace NAs
+
+# replace NAs, convert to factors
 dat <- dat %>% 
   mutate_if(is.character, 
                   str_replace_all,
@@ -74,8 +75,12 @@ str(dat)
 #     are about as good as we'll get
 imp <- dat %>% rfImpute(hd ~., data =., iter = 6)
 # does increasing iteration improve the estimates?
+set.seed(42)
+
 imp_20 <- dat %>% rfImpute(hd ~., data =., iter = 20)
 # run random forest and return proximity matrix 
+set.seed(42)
+
 model <- imp %>% randomForest(hd~., data =., proximity = T)
 # view output of model 
 #     > three types of RFs: 
@@ -216,7 +221,8 @@ rf_compare <- microbenchmark(
 
 autoplot(rf_compare)
 # what if we want to go beyond the default plot?
-rf_compare_dat <- rf_compare %>% as_tibble()
+rf_compare_dat <- rf_compare %>% 
+  as_tibble()
 # boxplot
 rf_compare_dat %>% 
   group_by(expr) %>%
@@ -246,8 +252,8 @@ print('the following summary stats measure the 1000 trees run time / 500 trees r
 model_500
 model_1000
 
-# OOB error rate did improve by ~ .7%, correctly classifying
-# an additional healthy patient but misclassifying an unhealthy one
+# OOB error rate did improve by ~ .33%, correctly classifying
+# two additional healthy patients but misclassifying an unhealthy one
 # What does our error rate to N trees plot look like with 1000 reps?
 
 error_rate_1000 <- as_tibble(model_1000$err.rate) %>%
@@ -276,7 +282,8 @@ set.seed(123456)
 model_optimal_vars <- randomForest(hd ~ .
                            , data = imp
                            , mtry = which.min(oob_values)
-                           , ntree = 1000)
+                           , ntree = 1000
+                           , proximity = T)
 error_rate_optimal_vars <-
   as_tibble(model_optimal_vars$err.rate) %>%
   rowid_to_column("Trees") %>%
@@ -300,11 +307,53 @@ compare <- bind_rows(error_rate_1000_vars,
                      error_rate_optimal_vars) %>%
   arrange(Type, Trees, n_vars)
 
-# plotting with 3 vs. 4 vars, why does OOB lose? 
+# plotting with 3 vs. 4 vars
+# using the mtry identified with our above iteration, OOB with 4 is better than
+# OOB with 3, as is Unhealthy, though Healthy seems to be the same
+
+compare <- compare %>%
+  mutate(color = fct_relevel(interaction(Type, n_vars), c('Unhealthy.3'
+                                                          , 'Unhealthy.4'
+                                                          , 'OOB.3'
+                                                          , 'OOB.4'
+                                                          , 'Healthy.3'
+                                                          , 'Healthy.4'
+                                                          )))
+
 ggplot() +
   geom_line(data = compare
-            , aes(x = Trees, y = Error, color = interaction(Type, n_vars))) +
+            , aes(x = Trees, y = Error, color = reorder(color, Type))) +
   scale_color_manual(values = cbPalette) 
 
-#what the heck is going on here, OOB still says 4 but at 1000 runs its still better with 3
+# exact differences
+compare %>%
+  filter(Trees == 1000)
+
+# interestingly, on average and on median in the 1000 > Trees > 250 
+# three vars does better than 4 for OOB and Healthy
+# it's also slightly more reliable w.r.t. sd 
+compare %>%
+  group_by(Type, n_vars) %>%
+  filter(Trees > 250) %>%
+  summarize(mean_error = mean(Error)
+            , median_error = median(Error)
+            , sd_error = sd(Error))
+
+# MDS plot ----
+
+distance_matrix <- dist(1-model_optimal_vars$proximity)
+mds_scaled <- cmdscale(distance_matrix, eig= T, x.ret= T)
+mds_percentage_variation_explained <- round(mds_scaled$eig/sum(mds_scaled$eig)*100,1)
+mds_values <- mds_scaled$points  
+mds_data <- tibble(Sample = rownames(mds_values),
+                       X = mds_values[,1],
+                       Y = mds_values[,2],
+                       Status = imp$hd)
+mds_data %>% 
+  ggplot(aes(x = X, y = Y, label = Sample)) +
+  geom_text(aes(color = Status)) +
+  theme_bw() + 
+  xlab(paste('MDS1 - ', mds_percentage_variation_explained[1], '%', sep = "")) +
+  ylab(paste('MDS2 - ', mds_percentage_variation_explained[2], '%', sep = "")) +
+  ggtitle('MDS plot using (1 - Random Forest Proximities)')
 
