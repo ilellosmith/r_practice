@@ -1,18 +1,18 @@
 library(shiny)
 
-# Define server logic required to draw a histogram
+# Define server logic 
 shinyServer(function(input, output, session) {
+    multiple <- reactive({
+      input$x * input$y
+    })
     output$product <- renderText({ 
-      product <- input$x * input$y
-      product
+      multiple()
     })
     output$product_plus5 <- renderText({ 
-      product <- input$x * input$y
-      product + 5
+      multiple() + 5
     })
     output$product_plus10 <- renderText({ 
-      product <- input$x * input$y
-      product + 10
+      multiple() + 10
     })
   }
 ) 
