@@ -56,3 +56,6 @@ for (i in 1:reps){
   estimates_logit$coeff_x2_se[i] <- sqrt(diag(vcv)[3]) # SE coefficient on X
 }
   
+generate_histograms(estimates_logit = estimates_logit
+                    , true_values_logit = true_values_logit)
+
