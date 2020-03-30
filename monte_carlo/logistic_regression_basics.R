@@ -53,7 +53,7 @@ for (i in 1:reps){
   estimates_logit$coeff_x2_est[i] <- model$coef[3] # coeff on X2
   estimates_logit$intercept_se[i] <- sqrt(diag(vcv)[1]) # SE intercept
   estimates_logit$coeff_x1_se[i] <- sqrt(diag(vcv)[2]) # SE coefficient on X
-  estimates_logit$coeff_x2_se[i] <- sqrt(diag(vcv)[3]) # SE coefficient on X
+  estimates_logit$coeff_x2_se[i] <- sqrt(diag(vcv)[3]) # SE coefficient on X2
 }
   
 generate_histograms(estimates_logit = estimates_logit
