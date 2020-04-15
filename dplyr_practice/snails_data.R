@@ -92,7 +92,7 @@ VARIABLES_SUBSET_TO_ANALYZE <- NULL
 # ---------------------------------------------------
 original_dat <- readxl::read_excel(ORIGINAL_DATA_FILE_PATH)
 original_dat <- original_dat %>% 
-  janitor::clean_names
+  janitor::clean_names()
 original_dat %>% 
   summary()
 
@@ -101,7 +101,7 @@ original_dat %>%
 # Run functions across all variables (or subset) and export data
 
 # ---------------------------------------------------
-if(VARIABLES_SUBSET_TO_ANALYZE > 0){
+if(length(VARIABLES_SUBSET_TO_ANALYZE) > 0){
 # This conditional flow is for analyzing a subset of variables
 # Pull columns to calculate 
 columns_to_calculate <- original_dat %>% 
