@@ -129,7 +129,7 @@ for (i in 1:reps){
   estimates_logit$coeff_x3_se[i] <- sqrt(diag(vcv)[4]) # SE coefficient on X3
 }
 
-generate_histograms(estimates_logit = estimates_logit
+plot_histograms(estimates_logit = estimates_logit
                     , true_values_logit = true_values_logit)
 
 obs %>%
