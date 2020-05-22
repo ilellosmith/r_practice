@@ -38,7 +38,7 @@ make_hist_plot <- function(est_dat
     theme_cowplot()
 }
 
-#' Return a plotted grid of histograms representing the spread of 
+#' Return a list of histograms representing the spread of 
 #' estimates and true values for a series of coefficients (or other estimates) 
 #' 
 #' @param estimates_logit tibble: logistic regression coefficient estimates 

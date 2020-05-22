@@ -32,7 +32,7 @@ calculate_coverage <- function(b, se, truth, level = 0.95, df = Inf){
   truth_in_ci <- ifelse(truth >= lower_bound & 
                           truth <= upper_bound, 1, 0)
   # Calculate coverage probability
-  cvg_pr <- mean(truth_in_ci)
+  cvg_pr <- mean(truth_in_ci, na.rm = T)
   # Calculate Monte Carlo Error
   mc_lower_bound <- cvg_pr - 1.96*sqrt((cvg_pr)*(1-cvg_pr))/length(b)
   mc_upper_bound <- cvg_pr + 1.96*sqrt((cvg_pr)*(1-cvg_pr))/length(b)
