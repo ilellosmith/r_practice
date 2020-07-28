@@ -1,6 +1,11 @@
 library(tidyverse)
 library(microbenchmark)
 library(tictoc)
+library(scales)
+library(boot)
+library(parallel)
+library(foreach)
+library(doParallel)
 # This script contains function definitions to complete the exercises in 
 # Grinstead and Snell's "Introduction to Probability" (2006)
 
@@ -174,7 +179,7 @@ triple_six <- function(n){
 #' @param n_trials - number of trials to simulate at each level of n_rolls
 #' @param n_rolls - number of rolls of three dice
 mc_triple_six <- function(n_trials, n_rolls){
-  dat <- matrix(, nrow = n_trials, ncol = length(n_rolls))
+  dat <- matrix(nrow = n_trials, ncol = length(n_rolls))
   # Run experiments
   for (i in 1:n_trials){
     dat[i,] <- sapply(n_rolls, triple_six)
@@ -183,6 +188,9 @@ mc_triple_six <- function(n_trials, n_rolls){
   mc_prop <- colMeans(dat) %>% 
     enframe()
   colnames(mc_prop) <- c('n_rolls', 'prop')
+  # Add confidence intervals for Monte Carlo Error
+  mc_lower_bound <- mc_prop - 1.96*sqrt((mc_prop)*(1-mc_prop))/n_trials
+  mc_upper_bound <- mc_prop + 1.96*sqrt((mc_prop)*(1-mc_prop))/n_trials
   # Plot proportion with triple sixes at each n_rolls level against 0.5
   mc_prop %>%
     ggplot(aes(x = n_rolls, y = prop)) +
@@ -199,22 +207,35 @@ mc_triple_six <- function(n_trials, n_rolls){
 #' 
 #' @param n_trials - number of trials to simulate at each level of n_rolls
 #' @param n_rolls - number of rolls of three dice
-mc_triple_six_cbind <- function(n_trials, n_rolls){
-  dat <- vector()
-  # Run experiments
-  for (i in 1:n_trials){
-    trial <- sapply(n_rolls, triple_six)
-    dat <- cbind(dat,trial)
-  }  
+mc_triple_six_cbind <- function(n_trials, n_rolls, cl, triple_six){
+  # Initialize variables
+  ref_rolls <- min(n_rolls)
+  iter_n <- 1:n_trials
+  # Set up parallel processing 
+  registerDoParallel(cl)
+  dat <- foreach(trial = iter_n) %dopar% {
+    sapply(n_rolls, triple_six)
+  }
+  # unlist to matrix
+  dat <- matrix(unlist(dat), ncol = length(n_rolls), byrow = TRUE)
   # Get proportion with triple sixes at each n_rolls level
-  mc_prop <- rowMeans(dat) %>% 
+  mc_prop <- colMeans(dat) %>% 
     enframe()
   colnames(mc_prop) <- c('n_rolls', 'prop')
+  # Add confidence intervals for Monte Carlo Error
+  mc_prop <- mc_prop %>%
+    mutate(
+      n_rolls = n_rolls + min(ref_rolls) - 1,
+      mc_lower_bound = prop - 1.96*sqrt((prop)*(1-prop))/n_trials,
+      mc_upper_bound = prop + 1.96*sqrt((prop)*(1-prop))/n_trials
+    )
   # Plot proportion with triple sixes at each n_rolls level against 0.5
   mc_prop %>%
     ggplot(aes(x = n_rolls, y = prop)) +
-    geom_point() +
+    geom_point() + 
+    geom_errorbar(aes(ymin = mc_lower_bound, ymax = mc_upper_bound), width = 0) +
     geom_hline(yintercept = 0.5, color = 'red') +
+    scale_x_continuous(breaks = pretty_breaks()) +
     theme_minimal() 
 }
 
@@ -231,7 +252,24 @@ autoplot(time_compare)
 
 # Looks like cbind is actually more efficient 
 # Need to figure out another way to speed this up
+mc_triple_six_cbind(1000, c(150:200))
 
 
+# the issue you're running into is that while you can point to the general 
+# area where you're consistently above 0.5 for prop of trials that have 
+# at least one three 6 roll, you can't pinpoint exactly what n_rolls that
+# happens at. Some happen at higher n_rolls.
+# the true value of the probability that you roll at least three sixes
+# should increase marginally with each additional roll. 
+# so - do you just need to be sampling a larger number?
 
 
+cl <- makeCluster(6)
+tic()
+test1M <- mc_triple_six_cbind(1000000, c(148:155), cl, triple_six)
+toc()
+
+# took 38.33 minutes
+# 2299.535 seconds
+# about 30 of those minutes were paralellized. The other 8 is the following comps
+# so looks like 150 it is
