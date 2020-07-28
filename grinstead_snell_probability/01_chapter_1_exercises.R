@@ -207,7 +207,7 @@ mc_triple_six <- function(n_trials, n_rolls){
 #' 
 #' @param n_trials - number of trials to simulate at each level of n_rolls
 #' @param n_rolls - number of rolls of three dice
-mc_triple_six_cbind <- function(n_trials, n_rolls, cl, triple_six){
+mc_triple_six_par <- function(n_trials, n_rolls, cl, triple_six){
   # Initialize variables
   ref_rolls <- min(n_rolls)
   iter_n <- 1:n_trials
@@ -242,34 +242,61 @@ mc_triple_six_cbind <- function(n_trials, n_rolls, cl, triple_six){
 # My simulations take a while to run. Using autobenchmark to compare 
 time_compare <- microbenchmark::microbenchmark(
   'matrix' = {
-    mc_triple_six(100, c(150:200))
+    mc_triple_six(100, c(149:155))
   },
-  'cbind' = {
-    mc_triple_six_cbind(100, c(150:200))
+  'par' = {
+    mc_triple_six_par(100, c(149:155), cl, triple_six)
   }
 )
 autoplot(time_compare)
 
-# Looks like cbind is actually more efficient 
 # Need to figure out another way to speed this up
-mc_triple_six_cbind(1000, c(150:200))
 
-
-# the issue you're running into is that while you can point to the general 
-# area where you're consistently above 0.5 for prop of trials that have 
-# at least one three 6 roll, you can't pinpoint exactly what n_rolls that
-# happens at. Some happen at higher n_rolls.
-# the true value of the probability that you roll at least three sixes
-# should increase marginally with each additional roll. 
-# so - do you just need to be sampling a larger number?
-
-
+# try different values of trials
 cl <- makeCluster(6)
+
 tic()
-test1M <- mc_triple_six_cbind(1000000, c(148:155), cl, triple_six)
+test10 <- mc_triple_six_par(10000, c(148:155), cl, triple_six)
+toc()
+
+tic()
+test100 <- mc_triple_six_par(100000, c(148:155), cl, triple_six)
+toc()
+
+
+tic()
+test1M <- mc_triple_six_par(1000000, c(148:155), cl, triple_six)
 toc()
 
 # took 38.33 minutes
 # 2299.535 seconds
 # about 30 of those minutes were paralellized. The other 8 is the following comps
-# so looks like 150 it is
+# so 150 it is
+
+# Save plots
+test10 %>%
+  ggsave(paste(lubridate::today(), '_triple_six_plot_10k.jpg', sep = ''), 
+         .,
+         path = '~/Documents/ilellosmith/r_files/Grinstead_Snell_Probability/plots',
+         width = 5,
+         height = 5, 
+         units = 'in'
+  )
+
+test100 %>%
+  ggsave(paste(lubridate::today(), '_triple_six_plot_100k.jpg', sep = ''), 
+         .,
+         path = '~/Documents/ilellosmith/r_files/Grinstead_Snell_Probability/plots',
+         width = 5,
+         height = 5, 
+         units = 'in'
+  )
+
+test1M %>%
+  ggsave(paste(lubridate::today(), '_triple_six_plot_1M.jpg', sep = ''), 
+         .,
+         path = '~/Documents/ilellosmith/r_files/Grinstead_Snell_Probability/plots',
+         width = 5,
+         height = 5, 
+         units = 'in'
+  )
