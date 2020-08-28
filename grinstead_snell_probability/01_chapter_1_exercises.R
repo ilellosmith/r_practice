@@ -6,15 +6,16 @@ library(boot)
 library(parallel)
 library(foreach)
 library(doParallel)
+library(arrangements)
 # This script contains function definitions to complete the exercises in 
 # Grinstead and Snell's "Introduction to Probability" (2006)
-
+#' 
 # Exercise 1 ----
 
 #' coin_tosses tosses a coin n times and prints after every 100
-#' tosses the proportion of heads minus 1/2 as well as the 
+#' tosses the proportion of heads minus 1/2 as well as the
 #' number of heads minus half the number of tosses
-#' 
+#'
 #' @param n number of coin tosses
 coin_tosses <- function(n){
   tosses <- vector()
@@ -31,10 +32,10 @@ coin_tosses <- function(n){
 
 # Exercise 2 ----
 
-#' coin_tosses_delta repeats a simulation 100 times in which a coin is 
-#' tossed n times. The function records for each experiment whether 
-#' the proportion of heads is within 0.1 of 0.5 
-#' 
+#' coin_tosses_delta repeats a simulation 100 times in which a coin is
+#' tossed n times. The function records for each experiment whether
+#' the proportion of heads is within 0.1 of 0.5
+#'
 #' @param n number of coin tosses
 coin_tosses_delta <- function(n){
   tosses <- rbinom(100,n,0.5)/n
@@ -45,12 +46,12 @@ coin_tosses_delta <- function(n){
 
 # Exercise 2 - Extension (I got tired of print statements)
 
-#' mc_coin_tosses_delta repeats the coin_tosses_delta simulation 
+#' mc_coin_tosses_delta repeats the coin_tosses_delta simulation
 #' n_trials times, at each of the number of coin tosses in n_tosses.
 #' It then calculates the mean proportion of tosses for which
-#' the proportion of heads is within 0.1 of 0.5 at each of the 
+#' the proportion of heads is within 0.1 of 0.5 at each of the
 #' n_tosses values and plots tht proportion by n_tosses
-#' 
+#'
 #' @param n_trials number of trials at each level of tosses
 #' @param n_tosses number of tosses in a given experiment
 mc_coin_tosses_delta <- function(n_trials = 30, n_tosses = c(1:100)){
@@ -61,7 +62,7 @@ for (i in 1:n_trials){
   dat <- cbind(trial, dat)
 }
 # Get mean of proportions at each n_tosses level
-mc_prop <- rowMeans(dat) %>% 
+mc_prop <- rowMeans(dat) %>%
   enframe()
 colnames(mc_prop) <- c('n_tosses', 'prop')
 # Plot mean of proportions at each n_tosses level against 0.95
@@ -69,7 +70,7 @@ mc_prop %>%
   ggplot(aes(x = n_tosses, y = prop)) +
   geom_point() +
   geom_hline(yintercept = 0.95, color = 'red') +
-  theme_minimal() 
+  theme_minimal()
 }
 
 
@@ -87,42 +88,42 @@ galileo_gamble <- function(n, sum1 = 9, sum2 = 10){
   sum1_n <- sum(ifelse(roll_sums == sum1, 1, 0))
   sum2_n <- sum(ifelse(roll_sums == sum2, 1, 0))
   # Output results
-  cbind(sum1_n, sum1, sum2_n, sum2) %>% 
-    as_tibble() 
+  cbind(sum1_n, sum1, sum2_n, sum2) %>%
+    as_tibble()
 }
 # Exercise 4 ----
 
-#' Plays many games of raquetball, and returns your average 
-#' probability of winning. 
-#' 
+#' Plays many games of raquetball, and returns your average
+#' probability of winning.
+#'
 #' Rules of the game: when you serve
-#' you have a "serve" chance of winning the point. 
+#' you have a "serve" chance of winning the point.
 #' When you return, you have a "return" chance of winning back the serve
 #' A player wins a point only on their serve. A player wins the game
 #' when they reach win points
-#' 
+#'
 #' @param n_games - number of games to simulate
 #' @param serve - your probability of winning a point when serving
 #' @param return - your probability of winning a point when returning
 #' @param win - number of points to win
 #' @param last_win - who starts serving. If 1 then you start serving
-#' 
+#'
 play_many_games <- function(n_games = 100, serve =0.6, return =0.5, win = 21, last_win = 1){
   outcomes <- replicate(n_games, play_game())
   mean(outcomes)
 }
 
 #' Plays a single game of raquetball, where when you serve
-#' you have a "serve" chance of winning the point. 
+#' you have a "serve" chance of winning the point.
 #' When you return, you have a "return" chance of winning back the serve
 #' A player wins a point only on their serve. A player wins the game
 #' when they reach win points
-#' 
+#'
 #' @param serve - your probability of winning a point when serving
 #' @param return - your probability of winning a point when returning
 #' @param win - number of points to win
 #' @param last_win - who starts serving. If 1 then you start serving
-#' 
+#'
 play_game <- function(serve =0.6, return =0.5, win = 21, last_win = 1){
   # Initialize game
   my_score <- 0
@@ -140,7 +141,7 @@ play_game <- function(serve =0.6, return =0.5, win = 21, last_win = 1){
       } else {
         my_score <- my_score + 1
       }
-      # If you lost last point, opponent serves  
+      # If you lost last point, opponent serves
     } else {
       # Win prob = return probability
       point <- rbinom(1,1, return)
@@ -159,23 +160,23 @@ play_game <- function(serve =0.6, return =0.5, win = 21, last_win = 1){
 # Exercise 5 ----
 
 #' Simulates the roll of three dice n times,
-#' and tracks whether at least one triple-six 
-#' was rolled 
-#' 
+#' and tracks whether at least one triple-six
+#' was rolled
+#'
 #' @param n number of rolls of three dice
 triple_six <- function(n){
   # Simulate n sums from n rolls of three die
   roll_sums <- replicate(n, sum(sample(1:6, 3, replace = T)))
-  # Count whether at least one triple six was rolled 
+  # Count whether at least one triple six was rolled
   any(ifelse(roll_sums == 18, T,F))
 }
 
 #' Simulates n_trials of rolling three dice n times,
-#' and calculates the probability of at least one 
+#' and calculates the probability of at least one
 #' triple-six when three dice are rolled n times
-#' 
+#'
 #' NB: this function operates by filling in a prefab matrix
-#' 
+#'
 #' @param n_trials - number of trials to simulate at each level of n_rolls
 #' @param n_rolls - number of rolls of three dice
 mc_triple_six <- function(n_trials, n_rolls){
@@ -183,9 +184,9 @@ mc_triple_six <- function(n_trials, n_rolls){
   # Run experiments
   for (i in 1:n_trials){
     dat[i,] <- sapply(n_rolls, triple_six)
-  }  
+  }
   # Get proportion with triple sixes at each n_rolls level
-  mc_prop <- colMeans(dat) %>% 
+  mc_prop <- colMeans(dat) %>%
     enframe()
   colnames(mc_prop) <- c('n_rolls', 'prop')
   # Add confidence intervals for Monte Carlo Error
@@ -196,22 +197,22 @@ mc_triple_six <- function(n_trials, n_rolls){
     ggplot(aes(x = n_rolls, y = prop)) +
     geom_point() +
     geom_hline(yintercept = 0.5, color = 'red') +
-    theme_minimal() 
+    theme_minimal()
 }
 
 #' Simulates n_trials of rolling three dice n times,
-#' and calculates the probability of at least one 
+#' and calculates the probability of at least one
 #' triple-six when three dice are rolled n times
-#' 
+#'
 #' NB: this function operates by cbinding each trial
-#' 
+#'
 #' @param n_trials - number of trials to simulate at each level of n_rolls
 #' @param n_rolls - number of rolls of three dice
 mc_triple_six_par <- function(n_trials, n_rolls, cl, triple_six){
   # Initialize variables
   ref_rolls <- min(n_rolls)
   iter_n <- 1:n_trials
-  # Set up parallel processing 
+  # Set up parallel processing
   registerDoParallel(cl)
   dat <- foreach(trial = iter_n) %dopar% {
     sapply(n_rolls, triple_six)
@@ -219,7 +220,7 @@ mc_triple_six_par <- function(n_trials, n_rolls, cl, triple_six){
   # unlist to matrix
   dat <- matrix(unlist(dat), ncol = length(n_rolls), byrow = TRUE)
   # Get proportion with triple sixes at each n_rolls level
-  mc_prop <- colMeans(dat) %>% 
+  mc_prop <- colMeans(dat) %>%
     enframe()
   colnames(mc_prop) <- c('n_rolls', 'prop')
   # Add confidence intervals for Monte Carlo Error
@@ -232,14 +233,14 @@ mc_triple_six_par <- function(n_trials, n_rolls, cl, triple_six){
   # Plot proportion with triple sixes at each n_rolls level against 0.5
   mc_prop %>%
     ggplot(aes(x = n_rolls, y = prop)) +
-    geom_point() + 
+    geom_point() +
     geom_errorbar(aes(ymin = mc_lower_bound, ymax = mc_upper_bound), width = 0) +
     geom_hline(yintercept = 0.5, color = 'red') +
     scale_x_continuous(breaks = pretty_breaks()) +
-    theme_minimal() 
+    theme_minimal()
 }
 
-# My simulations take a while to run. Using autobenchmark to compare 
+# My simulations take a while to run. Using autobenchmark to compare
 time_compare <- microbenchmark::microbenchmark(
   'matrix' = {
     mc_triple_six(100, c(149:155))
@@ -263,7 +264,6 @@ tic()
 test100 <- mc_triple_six_par(100000, c(148:155), cl, triple_six)
 toc()
 
-
 tic()
 test1M <- mc_triple_six_par(1000000, c(148:155), cl, triple_six)
 toc()
@@ -275,28 +275,300 @@ toc()
 
 # Save plots
 test10 %>%
-  ggsave(paste(lubridate::today(), '_triple_six_plot_10k.jpg', sep = ''), 
+  ggsave(paste(lubridate::today(), '_triple_six_plot_10k.jpg', sep = ''),
          .,
          path = '~/Documents/ilellosmith/r_files/Grinstead_Snell_Probability/plots',
          width = 5,
-         height = 5, 
+         height = 5,
          units = 'in'
   )
 
 test100 %>%
-  ggsave(paste(lubridate::today(), '_triple_six_plot_100k.jpg', sep = ''), 
+  ggsave(paste(lubridate::today(), '_triple_six_plot_100k.jpg', sep = ''),
          .,
          path = '~/Documents/ilellosmith/r_files/Grinstead_Snell_Probability/plots',
          width = 5,
-         height = 5, 
+         height = 5,
          units = 'in'
   )
 
 test1M %>%
-  ggsave(paste(lubridate::today(), '_triple_six_plot_1M.jpg', sep = ''), 
+  ggsave(paste(lubridate::today(), '_triple_six_plot_1M.jpg', sep = ''),
          .,
          path = '~/Documents/ilellosmith/r_files/Grinstead_Snell_Probability/plots',
          width = 5,
-         height = 5, 
+         height = 5,
          units = 'in'
   )
+# Exercise 6 ----
+#' Simulates n_bets in a roulette wheel
+#' and calculates winnings at the end of n_bets, 
+#' and returns the outcomes for each bet
+#' 
+#' @param n_bets - number of bets
+#' @param pr_win - probability you win on a given bet
+#' @param win - amount you win if you win
+#' @param loss - amount you lose if you lose
+#' 
+#' @return list with two items: 
+#'    > outcomes - tibble of outcomes and cumulative earnings (or losses)
+#'    > winnings - total winnings at the end of n_bets
+#'    
+simulate_roulette <- function(n_bets = 1000, 
+                              pr_win = 18/(18+18+2),
+                              win = 1, loss = -1){
+  # simulate n_bets outcomes
+  outcomes <- tibble(
+    'indiv_rounds' = ifelse(rbinom(n_bets, 1, pr_win), win, loss)
+    ) %>%
+  mutate(winnings = cumsum(indiv_rounds)) %>%
+  mutate(bet_number = row_number())
+  list('outcomes' = outcomes, 'total_winnings' = sum(outcomes$indiv_rounds))
+}
+
+#' Repeates roulette spin and returns dataframe
+#' with labeled trials and aggregates for 
+#' each trial
+#' 
+#' @param n_sims - number of simulations to run
+#' @param n_bets - number of bets in each simulation
+#' @param agg_fcn - function to aggregate cumsums
+#' @param pr_win - probability of winning a given bet
+#' @param win - amount of money from a win
+#' @param loss - amount of money from a loss
+#' 
+#' @return list with two items: 
+#'    > outcomes - tibble of outcomes and cumulative earnings (or losses)
+#'    > winnings - total winnings at the end of n_bets
+#'    
+mc_roulette <- function(n_sims, n_bets,
+                              pr_win, win, loss,
+                              agg_fcn){
+# initialize output
+outcomes <- tibble(
+  'indiv_rounds' = 0,
+  'winnings' = 0, 
+  'sim' = 0, 
+  'bet_number' = 0
+)
+winnings <- vector(mode = 'numeric', length = n_sims)
+# run n_sims
+ for (i in 1:n_sims){
+   # simulate a game
+   game <- simulate_roulette(n_bets, pr_win, win, loss)
+   # record game results
+   game_outcome <- game$outcomes %>%
+     mutate(sim = i)
+   outcomes <- rbind(outcomes, game_outcome)
+   winnings[i] <- game$total_winnings
+ }
+# remove seed row
+outcomes <- outcomes %>%
+  filter(sim > 0)
+# export results
+list(mc_outcomes = outcomes, agg_winnings = agg_fcn(winnings))
+}
+
+#' Plots the outcomes of many games of roulette
+#' 
+#' @param mc_outcomes - outcome data from mc_roulette_color
+#' @param n_bets - number of bets in a given round of Roulette
+#' @param pr_win - probability of winning a given bet
+#' @param win - amount of money from a win
+#' @param loss - amount of money from a loss
+#' 
+#' @return ggplot of cumulative net winnings for many rounds of 
+#' roulette
+#'    
+plot_mc_roulette_outcomes <- function(mc_outcomes, n_bets, 
+                                      pr_win, win, loss){
+  # Aggregate data
+  aggregate_outcome <- mc_outcomes %>%
+    group_by(bet_number) %>% 
+    summarize(median_winnings = median(winnings), 
+              average_winnings = mean(winnings))
+  # plot individual simulations and aggregate outcomes
+  ggplot() + 
+    geom_line(dat = mc_outcomes, 
+              aes(x = bet_number, 
+                  y = winnings, 
+                  group = sim),
+              color = 'light grey') + 
+    geom_line(dat = aggregate_outcome, 
+              aes(x = bet_number, 
+                  y = average_winnings), 
+              color = 'red') + 
+    geom_segment(aes(x = 0, xend = n_bets, y = 0, yend = 0 ), color = 'black') +
+    theme_minimal() +
+    scale_y_continuous(labels = dollar_format(negative_parens = T)) +
+    xlab('\n Bet Number') +
+    ylab('Cumulative Net Winnings \n') +
+    ggtitle(sprintf('Average Cumulative Net Winnings for %d Rounds of Roulette', n_bets), 
+            subtitle = sprintf('Probability of winning = %.3f, win = +$%d, loss = ($%d)', pr_win, win, abs(loss)))
+}
+
+# Exercise 7 ---- 
+# Betting on a red slot 
+sim_red <- mc_roulette(n_sims = 300, 
+                         agg_fcn = mean, 
+                         n_bets = 500, 
+                         pr_win = 18/(18*2+2), 
+                         win = 1, 
+                         loss = -1)
+plot_mc_roulette_outcomes(sim_red$mc_outcomes, 
+                          n_bets = 500, 
+                          pr_win = 0.474,
+                          win = 1,
+                          loss = -1)
+
+# Betting on a number 
+sim_num <- mc_roulette(n_sims = 300, 
+                   agg_fcn = mean, 
+                   n_bets = 500, 
+                   pr_win = 1/38, 
+                   win = 36, 
+                   loss = -1)
+plot_mc_roulette_outcomes(sim_num$mc_outcomes, 
+                          n_bets = 500, 
+                          pr_win = 1/38,
+                          win = 36,
+                          loss = -1)
+
+# Exercise 8 ----
+# Two flips outcomes: HH, HT , TH, TT 
+flip_two <- permutations(c('H', 'T'), 2, replace = T) %>% 
+  # Set names
+  as_tibble(.name_repair = 'minimal') %>%
+  set_names('flip1', 'flip2') %>%
+  # Calculate if H always in lead and total is net zero
+  mutate(outcome = paste(flip1,flip2, sep = ''),
+         flip1 = ifelse(flip1 == 'H', 1, -1),
+         flip2 = ifelse(flip2 == 'H', 1, -1),
+         always_in_lead = ifelse(flip1+flip2 == 2, 1, 0),
+         net_zero = ifelse(flip1+flip2 == 0, 1,0)
+  )
+# Calculate proportions
+prop_two <- flip_two %>% 
+  summarize(prop_always_in_lead = mean(always_in_lead), 
+            prop_net_zero = mean(net_zero)) %>%
+  mutate(n_flip = 2)
+
+# N times H in lead - 2 / 4
+# N times H score ends at zero - 2 / 4
+# Four flips outcomes: 
+# Generate all outcomes
+flip_four <- permutations(c('H', 'T'), 4, replace = T) %>% 
+  # Set names
+  as_tibble(.name_repair = 'minimal') %>%
+  set_names('flip1', 'flip2', 'flip3', 'flip4') %>%
+  # Calculate if H always in lead and total is net zero
+  mutate(outcome = paste(flip1,flip2,flip3,flip4, sep = ''),
+         flip1 = ifelse(flip1 == 'H', 1, -1),
+         flip2 = ifelse(flip2 == 'H', 1, -1),
+         flip3 = ifelse(flip3 == 'H', 1, -1), 
+         flip4 = ifelse(flip4 == 'H', 1, -1), 
+         always_in_lead = ifelse(flip1+flip2+flip3+flip4 == 4, 1, 0),
+         net_zero = ifelse(flip1+flip2+flip3+flip4 == 0, 1,0)
+         )
+# Calculate proportions
+prop_four <- flip_four %>% 
+  summarize(prop_always_in_lead = mean(always_in_lead), 
+            prop_net_zero = mean(net_zero)) %>%
+  mutate(n_flip = 4)
+
+# Eight flips outcomes: 
+flip_eight <- permutations(c('H', 'T'), 8, replace = T) %>% 
+  # Set names
+  as_tibble(.name_repair = 'minimal') %>%
+  set_names('flip1', 'flip2', 'flip3', 'flip4', 
+            'flip5', 'flip6', 'flip7', 'flip8') %>%
+  # Calculate if H always in lead and total is net zero
+  mutate(outcome = paste(flip1,flip2,flip3,flip4,
+                         flip5,flip6,flip7,flip8,sep = ''),
+         flip1 = ifelse(flip1 == 'H', 1, -1),
+         flip2 = ifelse(flip2 == 'H', 1, -1),
+         flip3 = ifelse(flip3 == 'H', 1, -1), 
+         flip4 = ifelse(flip4 == 'H', 1, -1), 
+         flip5 = ifelse(flip5 == 'H', 1, -1),
+         flip6 = ifelse(flip6 == 'H', 1, -1),
+         flip7 = ifelse(flip7 == 'H', 1, -1), 
+         flip8 = ifelse(flip8 == 'H', 1, -1), 
+         always_in_lead = ifelse(flip1+flip2+flip3+flip4+
+                                flip5+flip6+flip7+flip8 == 8, 1, 0),
+         net_zero = ifelse(flip1+flip2+flip3+flip4+
+                             flip5+flip6+flip7+flip8 == 0, 1,0)
+  )
+# Calculate proportions
+prop_eight <- flip_eight %>% 
+  summarize(prop_always_in_lead = mean(always_in_lead), 
+            prop_net_zero = mean(net_zero)) %>% 
+  mutate(n_flip = 8)
+
+flips <- rbind(
+  prop_two,
+  prop_four,
+  prop_eight
+)
+
+flips %>%
+  ggplot() + 
+  geom_line(aes(x = n_flip, y = prop_always_in_lead, color = 'Prop perm always in lead')) +
+  geom_line(aes(x = n_flip, y = prop_net_zero, color = 'Prop perm net zero outcome')) + 
+  scale_color_manual(values = c('Prop perm always in lead' = 'red', 
+                     'Prop perm net zero outcome' = 'blue')
+                     ) +
+  theme_minimal() +
+  theme(axis.title.y = element_blank(), 
+        legend.position = 'top', 
+        legend.title = element_blank()) +
+  xlab('\n Number of flips per game')
+
+# Exercise 9 ---- 
+#' Plays games of roulette using the Labouchere system
+#' and a starting list of bets
+#' 
+#' @param start_list a starting list of bets
+#' @return a list of results
+#' 
+play_labouchere <- function(start_list){
+  # Define start list for Labouchere system
+  game_results <- c()
+  i = 1
+  while(length(start_list) > 0){
+    # Determine bet 
+    bet <- 
+      if(length(start_list) == 1){
+        start_list
+      } else {
+        start_list[1] + start_list[length(start_list)] 
+      }
+    # Play roulette
+    game_result <- simulate_roulette(n_bets = 1, pr_win = 1/2 , win = bet, loss = -bet)
+    game_results[i] <- game_result$total_winnings
+    i = i + 1
+    # If you win, remove the first and last element of start list
+    if(game_result$total_winnings > 0){
+      start_list <- start_list[-c(1, length(start_list))]
+    } else {
+      # Otherwise, add the last bet to the end of the start list
+      start_list[length(start_list)+1] <- bet
+    }
+  }
+  game_results %>%
+    sum()
+}
+
+#' Plays many games of roulette using the Labouchere system
+#' and a starting list of bets
+#' 
+#' @param n_reps number of times to repeat in mc experiment
+#' @param start_list a starting list of bets
+#' @return a list of results
+#' 
+mc_labouchere <- function(n_reps = 100, start_list){
+  outcome <- c()
+ for (i in 1:n_reps){
+   outcome[i] <- play_labouchere(start_list)
+ } 
+ unique(outcome)
+}
