@@ -528,7 +528,7 @@ flips %>%
 #' and a starting list of bets
 #' 
 #' @param start_list a starting list of bets
-#' @return a list of results
+#' @return the sum of results,  and number of roulettes to get there
 #' 
 play_labouchere <- function(start_list){
   # Define start list for Labouchere system
@@ -554,8 +554,9 @@ play_labouchere <- function(start_list){
       start_list[length(start_list)+1] <- bet
     }
   }
-  game_results %>%
-    sum()
+  list('winnings' = game_results %>% sum(),
+       'plays' = length(game_results),
+       'raw_bets' = game_results)
 }
 
 #' Plays many games of roulette using the Labouchere system
@@ -567,8 +568,157 @@ play_labouchere <- function(start_list){
 #' 
 mc_labouchere <- function(n_reps = 100, start_list){
   outcome <- c()
+  plays <- c()
+  results <- list()
  for (i in 1:n_reps){
-   outcome[i] <- play_labouchere(start_list)
+   game <- play_labouchere(start_list)
+   outcome[i] <- game$winnings
+   plays[i] <- game$plays
+   results[[i]] <- game$raw_bets
  } 
- unique(outcome)
+ list('unique_outcomes' = unique(outcome),
+      'n_plays' = plays,
+      'raw_bets' = results)
 }
+
+# Plot results to show why this isn't a foolproof betting strategy
+my_games <- mc_labouchere(start_list= c(1,2,3,4))
+
+# Pull out raw bets, label with game round 
+bets <- my_games$raw_bets %>% 
+  map(~as_tibble(.)) %>% 
+  bind_rows(.id="index") %>%
+  set_names(c('game', 'bet_amount')) %>%
+  group_by(game) %>%
+  mutate(earnings = cumsum(bet_amount),
+         bet_number = row_number()) 
+
+# Plot cumsum of earnings to illustrate why this isn't a sure betting strategy
+bets %>%
+  ggplot(aes(x = bet_number, y = earnings, group = game)) +
+  geom_line() + 
+  scale_y_continuous(labels = dollar_format(negative_parens = T)) +
+  xlab('\n Bet Number') +
+  ylab('Earnings \n') +
+  theme_minimal()
+
+# Plot number of plays needed to arrive at $10 winnings
+my_games$n_plays %>%
+  as_tibble(.) %>% 
+  set_names('n_bets') %>% 
+  ggplot() + 
+  geom_histogram(aes(x = n_bets), bins = 40) + 
+  xlab('\n Number of Bets to Get to $10') +
+  ylab('') + 
+  ggtitle('Density of bets required to arrive at $10 Winnings') +
+  theme_minimal()
+
+# Exercise 12 ----
+# Dems have 52% support
+# n-size = 1000
+ifelse(rbinom(100,1000,0.52) > 500, 1,0) %>%
+  table() %>% 
+  prop.table()
+# Dems have 51% support
+# n-size = 1000
+ifelse(rbinom(100,1000,0.51) > 500, 1,0) %>%
+  table() %>% 
+  prop.table()
+# n-size = 3000
+ifelse(rbinom(100,3000,0.51) > 500, 1,0) %>%
+  table() %>% 
+  prop.table()
+
+
+# Exercise 17 ----
+# a) 1D random walk
+#' Simulates one random block walked 
+#' 
+#' @param position current position relative to start
+#' @param blocks number of blocks walked 
+#' 
+#' @return list with position and blocks 
+#'
+random_block <- function(position, blocks){
+  # Decide if will go left (-1) or right(1)
+  position = ifelse(rbinom(1,1,0.5), position + 1, position - 1)
+  # Walk one block in that direction
+  blocks = blocks + 1
+  # Return position and blocks
+  list('position' = position, 'blocks' = blocks)
+}
+
+#' Simulates one random walk in one dimension (start to finish)
+#' 
+#' @return list with final position, blocks walked and record of positions
+#'
+random_walk_1d <- function(){
+  # create empty vector for where someone has walked
+  where_walked = c(0) # where a person has walked
+  # Set first walk
+  status <- random_block(0, 0)
+  where_walked[2] <- status$position
+  # Repeat until returned to start, recording number of blocks
+  # travelled
+  while (status$position != 0){
+    status <- random_block(status$position, status$blocks)
+    where_walked[status$blocks + 1] <- status$position
+  }
+  # return final position and blocks walked
+  list('position' = status$position, 'blocks' = status$blocks, 'path' = where_walked)
+}
+
+# Simulate 100 walks
+walks <- map(c(1:1000),function(x) random_walk_1d())
+# Extract paths
+paths <- 
+  # Extract path element from walks
+  sapply(walks, with, path) %>%
+  # Convert to tibbles and combine
+  map(~as_tibble(.)) %>% 
+  bind_rows(.id = 'index') %>%
+  # Name columns and record block number
+  set_names(c('walk', 'position')) %>%
+  group_by(walk) %>%
+  mutate(block_number = row_number()) 
+
+# Plot the random walks
+paths %>%
+  ggplot(aes(x = block_number, y = position, group = walk)) + 
+  geom_line() + 
+  theme_minimal()
+
+# Plot the number of blocks to walk to return to zero
+sapply(walks, with, blocks) %>%
+  as_tibble() %>%
+  set_names('blocks_walked') %>%
+  filter(blocks_walked < 100) %>%
+  ggplot() + 
+  geom_histogram(aes(x = blocks_walked), bins = 300) + 
+  xlab('\n Number of Blocks Walked') +
+  ylab('') + 
+  ggtitle('Density of Blocks Walked to Return to Start') +
+  theme_minimal()
+ 
+# b) 2D random walk
+#' Simulates one random 2d block walked 
+#' 
+#' @param position current position relative to start
+#' @param blocks number of blocks walked 
+#' 
+#' @return list with position and blocks 
+#'
+random_block_2d <- function(position, blocks){
+  # Decide if will go up, down, left or right
+  up <- c(0,1)
+  down <- c(0,-1)
+  left <- c(-1,0)
+  right <- c(0,-1)
+  direction <- sample(list(up, down, left, right), 1, replace = T)
+  # Walk one block in chosen direction
+  position <- position + direction[[1]]
+  blocks = blocks + 1
+  # Return position and blocks
+  list('position' = position, 'blocks' = blocks)
+}
+  
