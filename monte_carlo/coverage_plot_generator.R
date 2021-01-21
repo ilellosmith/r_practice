@@ -38,8 +38,8 @@ make_ci_plot <- function(est_ci_dat
                                   'CI does not include true value')) +
     xlab(paste(nrow(est_ci_dat), 'Simulated Samples', sep = ' ')) +
     ylab(str_to_lab(name_root)) +
-    theme_cowplot() +
-    theme(legend.position = 'top',
+      theme_cowplot() +
+    theme(legend.position = 'none',
           legend.title = element_blank()) 
   
 }
@@ -187,6 +187,14 @@ generate_ci_plots <- function(estimates_logit
 #' @return cowplot of CI coverage plots 
 plot_ci_coverage <- function(estimates_logit, true_values_logit){
   plot_list <- generate_ci_plots(estimates_logit, true_values_logit)
-  plot_grid(plotlist = plot_list)
+  # extract the legend from one of the plots
+  legend <- get_legend(plot_list[[1]] + theme(legend.position = 'top'))
+  # build plot with CI plots
+  ci_plots <- plot_grid(plotlist = plot_list)
+  # add in caption above
+  with_caption <- plot_grid(legend,
+                            ci_plots, 
+                            ncol = 1, 
+                            rel_heights = c(0.1,1))
 }
 

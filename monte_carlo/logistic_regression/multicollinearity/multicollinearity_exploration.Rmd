@@ -1,0 +1,165 @@
+---
+title: "Logistic Regression Multicollinearity Simulation"
+author: "Isaac Lello-Smith"
+date: "01/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/git/r_practice/monte_carlo")
+source('estimate_histogram_generator.R')
+source('coverage_calculator.R')
+source('coverage_plot_generator.R')
+assumptions <- read_csv('Logistic_Regression_Assumptions.csv') 
+```
+
+### Outline
+1. Motivation 
+2. Simulation workflow
+3. Functions
+    a) Estimate Histogram Generator (`plot_histograms`)
+    b) Coverage Plot Generator (`plot_ci_coverage`)
+4. Simulation 1: Logistic regression under ideal circumstances
+5. Simulation 2: Consequences of multicollinarity for estimate efficiency
+    a) Mild multicollinearity
+    b) Severe multicollinearity
+    c) What's the tipping point?
+6. Conclusion
+7. Additional Resources
+
+### 1. Motivation
+At my current role at [Bully Pulpit Interactive](https://bpimedia.com/), I use logistic regression to estimate the impacts of experimental media interventions on various outcomes, like perceptions of a brand, or rates of vote by mail requests and returns. I wanted to better understand the core assumptions of logistic regression, so I used Monte Carlo simulation to build my intuition about the consequences of violations of assumptions, empirical challenges, and uncertainty in point estimates. 
+
+This document introduces several of the R functions I defined to visualize logistic regression outcomes and walks through an example simulation illustrating the efficiency costs that result from correlated variables. I modeled my visuals and simulation code structure on [Carsey & Harden (2014)](https://us.sagepub.com/en-us/nam/monte-carlo-simulation-and-resampling-methods-for-social-science/book241131). 
+
+### 2. Simulation workflow
+Each simulation follows the same general process:
+
+  - First I set the true values for my data generating process's (DGP) regression coefficients, and define parameters like the number of experiments to simulate, the sample size for each simulated experiment, and the correlation among the independent variables. 
+  - Then I generate random data for my independent variables, plug this data into my DGP to get a list of experimental outcomes, and fit a logistic regression model to each simulated experiment to estimate the coefficients.
+  - Finally I plot diagnostic plots that show the distribution of coefficient estimates around their true values, as well as confidence interval coverage for the estimates. 
+  
+To explore violations of logistic regression assumptions, I'll modify components of my simulation and compare the outcomes from simulations that meet logistic regression assumptions to simulations that violate logistic regression assumptions. This experiment simulates multicollinearity, which I discuss in more detail in section 5. Simulation 2: Consequences of multicollinarity for estimate efficiency.
+
+### 3. Functions
+I wrote several custom functions for this simulation to build my diagnostic plots. Two main wrapper functions call helper functions to prepare and plot the simulation data. These are: 
+
+- `plot_histograms`, which plots histograms of estimates around the true values for a flexible number of estimates and is supported by helper functions: 
+
+    * `str_to_lab` - formats strings for plot labels 
+    * `make_hist_plot` - plots a single histogram of estimates and the true value 
+    * `generate_hist_plots` - builds a list of multiple histogram plots and true values by calling `make_hist_plot` repeatedly\
+\
+- `plot_ci_coverage`, which plots confidence intervals and estimates around the true value, color coding confidence intervals based on whether they contain the true value. This function is supported by helper functions: 
+
+    * `calculate_coverage` - takes coefficient estimates, standard errors, true values and a confidence level and calculates confidence intervals for each estimate as well as overall coverage probability and Monte Carlo error
+    * `get_ci_coverage_dat` - calls `calculate_coverage` to calculate confidence interval coverage, and prepares the data for plotting, sampling an interpretable number of confidence intervals to plot whose coverage proportion represents the calculated confidence interval coverage
+    * `get_ci_sample` - pulls the sample of confidence intervals to plot
+    * `make_ci_plot` - plots the sampled confidence intervals around the true value for a given coefficient 
+    * `generate_ci_plots` - builds a list of multiple confidence interval plots and true values by calling `make_ci_plot` repeatedly\
+
+### 4. Simulation 1: Logistic regression under ideal circumstances
+
+Under ideal circumstances, a logistic regression model will meet each of the assumptions listed in the table below:
+
+```{r assumptions, echo=FALSE}
+knitr::kable(assumptions, caption = 'Logistic Regression Assumptions')
+```
+
+Even when your regression passes all the above checks, there will still be uncertainty in the coefficients your model produces. That's because the results you obtain from an individual model are impacted by random chance. The consequence of this uncertainty is that coefficients you estimate in a given analysis may not match the true values of the coefficients that define your study system's DGP. Using frequentist statistics, you can quantify the uncertainty in your estimates, and understand the range of possible true coefficient values. Frequentist statistics theory is based on what would happen if you were to repeat your experiment many many times. Doing so would produce a distribution of estimate outcomes for each coefficient. Absent assumption violations, you'd expect these estimate distributions to be centered on the true value of the coefficient (i.e, be unbiased), and not have too much variation (i.e., be efficient). Visually, this looks like:\
+
+``` {r simulation_ideal, include=FALSE}
+source('logistic_regression_basics.R')
+```
+
+```{r histograms_ideal, echo=FALSE, fig.width = 11}
+histograms_ideal
+```
+
+On any given experiment, you might obtain results anywhere in this distribution. In a system that meets all the assumptions of logistic regression, you know that the values you are most likely to estimate are very close to the true value, and the worst case estimates are low probability. Similarly, in an ideal system, you know that a 95% confidence interval for your coefficient estimate truly represents 95% coverage. That means that in your repeated experiments, 95 out of 100 confidence intervals around your coefficient estimates will contain the true coefficient value. Visually, this looks like:\
+
+```{r confidence_intervals_ideal, echo=FALSE, fig.width = 12}
+confidence_intervals_ideal
+```
+
+The two plots above are the diagnostic chart outputs from 1000 simulated experiments, each with a sample size of 1000 observations for variables X1, X2 and X3. These simulations model an ideal logistic regression system. The next section will explore what happens when you add low levels and high levels of multicollinearity to this system. 
+
+### 5. Simulation 2: Consequences of multicollinarity for estimate efficiency
+
+Collinearity occurs when two variables are linearly related to one another. For example, one variable may increase steadily as another decreases. Multicollinearity occurs when more than two variables are linearly related to one another in a system. When present, multicollinearity decreases the efficiency of your estimates by giving you a larger spread of possible estimates, and thereby increasing the likelihood that the individual experiment you conduct to understand your system will give you estimates far from their true values. This impact is moderate for mild multicollinearity, but becomes substantial at high levels of multicollinearity. 
+
+``` {r simulation_multi, include=FALSE}
+source('logistic_regression_multicollinearity.R')
+```
+
+#### Mild Multicollinearity
+
+First we'll simulate a system with more collinearity than an ideal system, but not high levels of collinearity at a sample size of 1000. The variables in this simulation are correlated as follows:\ 
+
+```{r correlation_plot_low, echo=FALSE, fig.width = 8}
+correlation_plot_low
+```
+
+For reference, the ideal simulation had correlations of:\
+
+```{r correlation_plot_ideal, echo=FALSE, fig.width = 8}
+correlation_plot_ideal
+```
+
+The mild multicollinearity system here is in the 0.5-0.6 range for the most correlated variables. As you can see below, these had relatively little impact on the overall system: 
+
+Estimate Histograms:\
+```{r histograms_low, echo=FALSE, fig.width = 11}
+histograms_low
+```
+
+Confidence Interval Coverage:\
+```{r confidence_intervals_low, echo=FALSE, fig.width = 11}
+confidence_intervals_low
+```
+
+The diagnostic plots changed subtly here. The estimates are still centered on their true values, and the confidence intervals still have 95% coverage. But the spread in the estimate distributions and the size of the confidence intervals both grew. 
+
+For example, the confidence intervals for variable X1 increased from a mean of ~`r ci_compare` in the ideal simulation to a mean of ~`r ci_compare_b` in the mild multicollinearity simulation, increasing by a factor of `r round(ci_compare_b/ci_compare,2)`.  
+
+#### Severe Multicollinearity
+
+The visual diagnostic outcome is similar in a severe case of multicollinearity, where the highest level of collinearity is 0.96. The estimates are unbiased, and the confidence intervals still have 95% coverage. However, the uncertainty is much higher in this scenario, with a mean confidence interval size of ~`r ci_compare_c`, which is `r round(ci_compare_c/ci_compare_b,2)` times larger than the mild scenario and `r round(ci_compare_c/ci_compare,2)` times larger than the ideal simulation.
+
+Variable Correlation:\
+```{r correlation_plot_high, echo=FALSE, fig.width = 8}
+correlation_plot_high
+```
+
+Estimate Histograms:\
+```{r histograms_high, echo=FALSE, fig.width = 11}
+histograms_high
+```
+
+Confidence Interval Coverage:\
+```{r confidence_intervals_high, echo=FALSE, fig.width = 11}
+confidence_intervals_high
+```
+
+#### What's the tipping point? 
+
+A correlation of 0.5-0.6 led to an relatively minor increase in uncertainty, while a correlation of 0.96 led to a much larger increase in uncertainty. This raises the question: how much collinearity does it take to move from a minor decrease in efficiency to a more substantial decrease in efficiency? To answer this question, I ran a series of simulations increasing the collinearity between X2 and X3 from 0 to 0.9 by increments of 0.1, with a final simulation where X2 and X3 are correlated at 0.99. At each level of collinearity, I simulated 1000 experiments, and calculated the standard deviation of the variable coefficient estimates at each level. The plot below shows the standard deviation of estimates for each coefficient at the 11 levels of correlation between X2 and X3. In the current system, multicollinearity above 0.8 causes substantial decreases in efficiency. Notably, the correlation between X2 and X3 has relatively little influence on the coefficient estimates for X1, which is only loosely correlated with X2 and X3. 
+
+Uncertainty in Coefficient Estimates at increasing correlation levels between X2 and X3:\
+```{r sd_change, echo=FALSE, fig.width = 11}
+sd_change
+```
+
+### 6. Conclusion 
+
+Analyses using logistic regression must meet several assumptions, including the absence of strong multicollinearity among independent variables. Collinearity among two or more independent variables will decrease the efficiency of coefficient estimates, which can present a substantial empirical challenge. In many applied research contexts, you as a researcher will not replicate your experiments. This means you will use a single set of coefficient estimates to understand your system. If the logistic regression you use to derive coefficient estimates has low efficiency due to multicollinearity, it's more likely that your single set of coefficient estimates will land farther from their true values.
+
+### 7. Additional Resources
+
+- [Stoltzfus (2011)](https://onlinelibrary.wiley.com/doi/epdf/10.1111/j.1553-2712.2011.01185.x) provides an excellent overview of logistic regression
+- [Josh Starmer](https://statquest.org/about/) of StatQuest has several excellent videos explaining logistic regression, including similarities to and differences from linear regression. 
+  - [Overview](https://statquest.org/statquest-logistic-regression/)
+  - [Details Pt. 1](https://www.youtube.com/watch?v=vN5cNN2-HWE) - covers the rationale behind the logit function
+  - [Details Pt. 2](https://www.youtube.com/watch?v=BfKanl1aSG0&t=1s) - walks through maximum likelihood
+  - [Details Pt. 3](https://www.youtube.com/watch?v=xxFYro8QuXA) - covers sum of squares, R,<sup>2</sup> , and p-values in logisitic regression

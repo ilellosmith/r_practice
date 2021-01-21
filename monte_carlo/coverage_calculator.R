@@ -21,7 +21,7 @@
 #' > Monte Carlo error bounds (numeric vector). This describes simulation error 
 #' that emerges from a finite number of repetitions. Calculated from the normal 
 #' approximation to the binomial distribution (calculating bounds around a binomial proportion)
-#' NB: this method is not robust to proportions close to 0 or 1. 
+#' NB: this method is not robust to proportions very close to 0 or 1. 
 
 calculate_coverage <- function(b, se, truth, level = 0.95, df = Inf){
   qtile <- level + (1-level)/2 # quantile for Tdist
