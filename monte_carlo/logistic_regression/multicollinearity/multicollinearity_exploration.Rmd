@@ -11,10 +11,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 library(pander)
 library(tinytex)
-setwd("~/git/r_practice/monte_carlo/")
-source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/estimate_histogram_generator.R')
-source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/coverage_calculator.R')
-source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/coverage_plot_generator.R')
+library(tidyverse)
+setwd("~/git/r_practice/monte_carlo/logistic_regression/multicollinearity/")
 assumptions <- read_csv('~/git/r_practice/monte_carlo/logistic_regression/multicollinearity/Logistic_Regression_Assumptions.csv') 
 ```
 
@@ -35,7 +33,7 @@ assumptions <- read_csv('~/git/r_practice/monte_carlo/logistic_regression/multic
 ### 1. Motivation
 At my current role at [Bully Pulpit Interactive](https://bpimedia.com/), I use logistic regression to estimate the impacts of experimental media interventions on various outcomes, like perceptions of a brand, or rates of vote by mail requests and returns. I wanted to better understand the core assumptions of logistic regression, so I used Monte Carlo simulation to build my intuition about the consequences of violations of assumptions, empirical challenges, and uncertainty in point estimates. 
 
-This document introduces several of the R functions I defined to visualize logistic regression outcomes and walks through an example simulation illustrating the efficiency costs that result from correlated variables. I modeled my visuals and simulation code structure on [Carsey & Harden (2014)](https://us.sagepub.com/en-us/nam/monte-carlo-simulation-and-resampling-methods-for-social-science/book241131). My full code is available on [Github.](https://github.com/ilellosmith/r_practice/tree/master/monte_carlo)
+This document introduces several of the R functions I defined to visualize logistic regression outcomes and walks through an example simulation illustrating the efficiency costs that result from correlated variables. I modeled my visuals and simulation code structure on [Carsey & Harden (2014)](https://us.sagepub.com/en-us/nam/monte-carlo-simulation-and-resampling-methods-for-social-science/book241131). My full code is available on [Github.](https://github.com/ilellosmith/r_practice/tree/master/monte_carlo/logistic_regression/multicollinearity)
 
 ### 2. Simulation workflow
 Each simulation follows the same general process:
@@ -68,7 +66,10 @@ I wrote several custom functions for this simulation to build my diagnostic plot
 Under ideal circumstances, a logistic regression model will meet each of the assumptions listed in the table below:
 
 ```{r assumptions, echo=FALSE}
-knitr::kable(assumptions, caption = 'Logistic Regression Assumptions', format = 'latex')
+pander::pander(assumptions, caption = 'Logistic Regression Assumptions',
+               split.cell = c(10,20,20,20), 
+               split.table = 100, 
+               justify = 'left')
 ```
 
 Even when your regression passes all the above checks, there will still be uncertainty in the coefficients your model produces. That's because the results you obtain from an individual model are impacted by random chance. The consequence of this uncertainty is that coefficients you estimate in a given analysis may not match the true values of the coefficients that define your study system's DGP. Using frequentist statistics, you can quantify the uncertainty in your estimates, and understand the range of possible true coefficient values. Frequentist statistics theory is based on what would happen if you were to repeat your experiment many many times. Doing so would produce a distribution of estimate outcomes for each coefficient. Absent assumption violations, you'd expect these estimate distributions to be centered on the true value of the coefficient (i.e, be unbiased), and not have too much variation (i.e., be efficient). Visually, this looks like:\
@@ -167,4 +168,4 @@ Analyses using logistic regression must meet several assumptions, including the 
   - [Details Pt. 1](https://www.youtube.com/watch?v=vN5cNN2-HWE) - covers the rationale behind the logit function
   - [Details Pt. 2](https://www.youtube.com/watch?v=BfKanl1aSG0&t=1s) - walks through maximum likelihood
   - [Details Pt. 3](https://www.youtube.com/watch?v=xxFYro8QuXA) - covers sum of squares, R,<sup>2</sup> , and p-values in logisitic regression
-- You can find my full code [here.](https://github.com/ilellosmith/r_practice/tree/master/monte_carlo)  
+- You can find my full code [here.](https://github.com/ilellosmith/r_practice/tree/master/monte_carlo/logistic_regression/multicollinearity)  

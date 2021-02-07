@@ -1,8 +1,8 @@
 # Load packages and functions ----
-setwd("~/git/r_practice/monte_carlo")
-source('estimate_histogram_generator.R')
-source('coverage_calculator.R')
-source('coverage_plot_generator.R')
+setwd("~/git/r_practice/monte_carlo/logistic_regression/multicollinearity/")
+source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/estimate_histogram_generator.R')
+source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/coverage_calculator.R')
+source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/coverage_plot_generator.R')
 library(tidyverse)
 library(pracma)
 library(mvtnorm)

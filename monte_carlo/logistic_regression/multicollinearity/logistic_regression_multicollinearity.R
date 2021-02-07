@@ -1,8 +1,8 @@
 # Load packages and functions ----
-setwd("~/git/r_practice/monte_carlo")
-source('estimate_histogram_generator.R')
-source('coverage_calculator.R')
-source('coverage_plot_generator.R')
+setwd("~/git/r_practice/monte_carlo/logistic_regression/multicollinearity/")
+source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/estimate_histogram_generator.R')
+source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/coverage_calculator.R')
+source('~/git/r_practice/monte_carlo/helper_functions/diagnostic_plots/coverage_plot_generator.R')
 library(tidyverse)
 library(pracma)
 library(mvtnorm)
@@ -373,70 +373,3 @@ sd_change <- sd_betas %>%
   ylab(paste('Standard deviation of \n coefficient estimates \n across', reps, 'experiments    \n')) +
   theme_cowplot() +
   theme(axis.title.y = element_text(angle = 0, vjust = 0.5)) 
-
-  
-# Future questions: 
-# - Learn more about positive definite - why can't cov matrixes on real data 
-# be non positive definite? 
-
-  
-# - vary the amount of correlation (between 2 or 3 vars)? 
-# - let's do three but only two are really correlated. 
-# Start at zero, go to 1 for the two correlated. 
-# - plot standard deviation of B estimates for each of the three 
-# variables as you increase correlation. threshold for one or the other?
-# does one stay ok throughout?
-
-# 
-# # new function to calculate distribution stats for size of CIs
-# 
-# plot_histograms(estimates_logit = estimates_logit %>% select(-c(coeff_x3_est, coeff_x3_se)),
-#                 true_values_logit = true_values_logit %>% select(-coeff_x3_tru))
-# 
-# plot_histograms(estimates_logit = estimates_logit
-#                 , true_values_logit = true_values_logit)
-# 
-# plot_ci_coverage(estimates_logit = estimates_logit %>% select(-c(coeff_x3_est, coeff_x3_se)),
-#                  true_values_logit = true_values_logit %>% select(-coeff_x3_tru))
-
-# with_multi1 <- mean(estimates_logit$coeff_x1_se)
-# with_multi2 <- mean(estimates_logit$coeff_x2_se)
-# with_multi3 <- mean(estimates_logit$coeff_x3_se)
-# 
-# without_multi1 <- mean(estimates_logit$coeff_x1_se)
-# without_multi2 <- mean(estimates_logit$coeff_x2_se)
-# without_multi3 <- mean(estimates_logit$coeff_x3_se)
-
-
-# adding multicollinearity makes SE larger, but CI coverage doesn't drop 
-# also makes the CIs larger s.t. they maintain coverage
-
-# adding endogeneity introduces bias in other estimates 
-# what would be helpful is to quantify the increase in uncertainty 
-# with multicollinearity 
-# How to remove the Coeff X3? 
-
-# corr_obs %>%
-#   filter(X3 < 1000) %>%
-#   ggplot(aes(x = X2, y = X3)) +
-#   geom_point() +
-#   geom_smooth(method = 'lm') +
-#   theme_cowplot()
-
-#https://www.r-bloggers.com/2015/03/simulating-endogeneity/
-
-# For MPR - 
-# example with no correlation (meets all assumptions)
-# example with correlation - look up simulating multivariate correlation
-# Save the categorical for another time 
-
-# plot_average
-# 
-# summarize_se <- estimates_logit %>% 
-#   select_if(str_detect(colnames(.),'se')) %>%
-#   map(., ~summary(.x))
-# 
-# cover_probs <- calculate_coverage(coeff_est, coeff_se, true_value, level, df)
-# 
-# 
-# summarize_se$intercept_se['Mean']

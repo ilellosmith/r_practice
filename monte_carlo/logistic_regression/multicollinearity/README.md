@@ -1,0 +1,4 @@
+This folder contains files for a simulation study exploring the impact of multicollinearity on estimate efficiency in logistic regression. 
+- the .Rmd file calls all necessary files to run the simulation and produce the .html output. NB if you fork this directory you will need to change the path names in all files that source other files to work with your system. These are logistic_regression_basics.R, logistic_regression_multicollinearity.R and multicollinearity_exploration.Rmd
+- Most of the sourced files are from a separate directory, as they're generalizable to other Monte Carlo simulations 
+- Logistic_Regression_Assumptions.csv contains a table with assumptions, ramifications for assumption violations, detection strategies and solutions. It is a large table and does not render well when Knitting to PDF. 
