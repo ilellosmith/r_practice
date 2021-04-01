@@ -7,13 +7,20 @@ library(cowplot)
 WORKING_DIRECTORY <- '~/Desktop/MyData/'
 setwd(WORKING_DIRECTORY)
 
+# turn this into a shiny app
+# they should only add files with StreamingHistory, and YourLibrary
+# pages can be top summary, artists dive, viral songs, listening habits
+# artists dive has top artists, middle artists, barely listened to artists
+# can also do steady listens (which most of mine are not)
+# would be cool for them to be able to export graphics
+
 # Define helper functions 
 
 #' Format string to be plot-ready
 #' @param string string: string to format 
 #' @return string: cleaned string for label
 str_to_lab <- function(string){
-  str_to_title(str_replace(string, "_", " "))
+  str_to_title(str_replace_all(string, "_", " "))
 }
 
 `%notin%` <- Negate(`%in%`)
@@ -142,6 +149,7 @@ artist_stats %>%
        y = paste0('\n', str_to_lab('hours_listened'))) +
   theme(axis.title.y = element_text(angle = 0, vjust = 0.5)) 
 
+
 # bottom artists
 artist_stats %>% 
   arrange(hours_listened) %>% 
@@ -225,7 +233,7 @@ months <- time_per_month %>%
  artists_months %>% 
    filter(artist_name %in% top_artists) %>% 
    ggplot(aes(x = months_date_format, y = hours_listened)) + 
-   geom_bar(stat = 'identity') + 
+   geom_bar(stat = 'identity', fill = SPOTIFY_COLORS['black']) + 
    scale_x_date(labels = scales::date_format('%m-%Y'),
                 limits = as.Date(c('2019-11-15', '2020-12-15'))) +
    facet_wrap(~artist_name) +
@@ -233,5 +241,90 @@ months <- time_per_month %>%
    labs(title = 'Top 6 Artists Hours Listened by Month Dec 2019 - Dec 2020',
         x = 'Month', 
         y = paste0('\n', str_to_lab('hours_listened')))
-   
+
+ # Song patterns 
+ 
+# Top songs listens by date 
+songs_listen_time <- dat %>% 
+   mutate(track_and_artist = paste0(track_name, ' [', artist_name, ']')) %>% 
+   group_by(track_and_artist) %>% 
+   summarize(total_hours_listened = sum(ms_played) / (1000*60*60)) %>% 
+   arrange(desc(total_hours_listened)) 
+ 
+top_songs_names <- songs_listen_time %>%
+   ungroup() %>%
+   top_n(6, total_hours_listened) %>% 
+   select(track_and_artist) %>% 
+   pull()
+
+dat %>% 
+  mutate(track_and_artist = paste0(track_name, ' [', artist_name, ']')) %>% 
+  filter(track_and_artist %in% top_songs_names) %>% 
+  mutate(date_listened = lubridate::date(end_time)) %>% 
+  group_by(track_and_artist, date_listened) %>% 
+  summarize(total_minutes_listened = sum(ms_played) / (1000*60)) %>%
+  group_by(track_and_artist) %>% 
+  mutate(cumulative_minutes_listened = cumsum(total_minutes_listened)) %>%
+  ggplot(aes(x = date_listened, y = cumulative_minutes_listened)) +
+  geom_line(color = SPOTIFY_COLORS['black'], size = 1.1) + 
+  scale_x_date(labels = scales::date_format('%m-%Y'),
+               limits = as.Date(c('2019-11-15', '2020-12-15'))) +
+  facet_wrap(~track_and_artist) +
+  theme_cowplot() +
+  labs(title = 'Top Songs Listens by Date Dec 2019 - Dec 2020',
+       x = '\n Date', 
+       y = paste0(str_to_lab('cumulative_minutes_listened \n')))
+
+# Middling songs listens by date 
+songs_with_repeat_listens <- dat %>% 
+  mutate(track_and_artist = paste0(track_name, ' [', artist_name, ']')) %>% 
+  mutate(date_listened = lubridate::date(end_time)) %>% 
+  group_by(track_and_artist) %>% 
+  count() %>%
+  filter(n >= 20) %>%
+  ungroup()
+
+repeat_listens_sample <- songs_with_repeat_listens %>% 
+  filter(track_and_artist %notin% top_songs_names) %>%
+  slice_sample(n = 6)
+
+song_names_with_repeat_listens <- repeat_listens_sample %>% 
+  select(track_and_artist) %>%
+  pull()
+
+median_listening_time <- songs_listen_time %>% 
+  select(total_hours_listened) %>%
+  pull() %>%
+  median()
+
+songs_listen_time %>% 
+  filter(round(total_hours_listened, 3) == round(median_listening_time, 3))
+
+middling_songs_names <- songs_listen_time %>%
+  filter(round(total_hours_listened, 3) == round(median_listening_time, 3)) %>%
+  ungroup() %>%
+  arrange(desc(total_hours_listened)) %>%
+  mutate(rank = row_number()) %>% 
+  top_n(6, total_hours_listened) %>% 
+  select(track_and_artist) %>% 
+  pull()
+
+dat %>% 
+  mutate(track_and_artist = paste0(track_name, ' [', artist_name, ']')) %>% 
+  filter(track_and_artist %in% song_names_with_repeat_listens) %>% 
+  mutate(date_listened = lubridate::date(end_time)) %>% 
+  group_by(track_and_artist, date_listened) %>% 
+  summarize(total_minutes_listened = sum(ms_played) / (1000*60)) %>%
+  group_by(track_and_artist) %>% 
+  mutate(cumulative_minutes_listened = cumsum(total_minutes_listened)) %>%
+  ggplot(aes(x = date_listened, y = cumulative_minutes_listened)) +
+  geom_line(color = SPOTIFY_COLORS['black'], size = 1.1) + 
+  scale_x_date(labels = scales::date_format('%m-%Y'),
+               limits = as.Date(c('2019-11-15', '2020-12-15'))) +
+  facet_wrap(~track_and_artist) +
+  theme_cowplot() +
+  labs(title = 'Top Songs Listens by Date Dec 2019 - Dec 2020',
+       x = '\n Date', 
+       y = paste0(str_to_lab('cumulative_minutes_listened \n')))
+
   
