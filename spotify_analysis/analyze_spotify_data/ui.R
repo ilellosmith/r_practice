@@ -105,7 +105,46 @@ shinyUI(fluidPage(
                             )
                         )
                     ),
-               tabPanel("Load Files"),
+               tabPanel("Load Files", 
+                        fluidRow(
+                            column(12, 
+                                   p(HTML(
+                                   "Once you have your data back from Spotify, 
+                                   download and open the .zip file. It's worth reading
+                                   through their <a href = 'https://support.spotify.com/us/article/understanding-my-data/'> article </a>
+                                   documenting what's in each file they sent you. The most important detail here is that you 
+                                   should <b> only upload your streaming history file(s) </b> to this app. These are named StreamingHistory#.json,
+                                   and look like:"
+                                   )),
+                                   img(src = 'streaming_history_files.png', width = '246', height = '119'),
+                                   br(), 
+                                   br(), 
+                                   p(HTML(
+                                   "The Spotify download also includes your profile information and payment 
+                                   information. Please <i> do not </i> upload these. When you're ready, 
+                                   hit the browse button below, navigate to your Spotify data download folder,
+                                   and select all the streaming history files you want to analyze. 
+                                   To select multiple files on a Mac, hold down the command button ⌘
+                                   and click on each file you want to upload. 
+                                   Or hold down shift and select the first and last streaming history 
+                                   file to select all streaming history files. This second option will also work on Windows."
+                                   ))
+                        )),
+                        fluidRow(
+                        column(12,
+                               br(),
+                        fileInput("files", "Upload Streaming History File(s)",
+                                  multiple = TRUE,
+                                  accept = c('.json'), 
+                                  placeholder = 'No file selected', 
+                                  width = '800px'),
+                        br(), 
+                        tableOutput("dat"), 
+                        p('The data you uploaded covers your listening history from <start date> 
+                          to <end date>. If this sounds right, feel free to move onto the data 
+                          exploration tabs. Otherwise, hit browse to retry your load with more 
+                          data files.')) # show conditionally if they've hit browse button 
+                        )),
                tabPanel("Summary"),
                tabPanel("Your Artists"),
                tabPanel("Your Songs"),
