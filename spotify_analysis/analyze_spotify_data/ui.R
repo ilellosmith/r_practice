@@ -47,6 +47,24 @@ shinyUI(fluidPage(
     
     theme = spotify_theme,
         #'bootstrap.css',
+        #'
+    tags$head(
+        tags$style(HTML("
+        .shiny-output-error-validation {
+            color: #d60000;
+            font-weight: bold;
+        }
+        .navbar.navbar-default {
+            background-color: #000;
+            border: 0px;
+        }
+        .progress-bar {
+            color: #000000;
+        }
+        .progress {
+           font-weight: bold;
+        }
+    "))),
 
     # Application title
     titlePanel("Spotify Data Explorer"),
@@ -126,14 +144,14 @@ shinyUI(fluidPage(
                                    and select all the streaming history files you want to analyze. 
                                    To select multiple files on a Mac, hold down the command button ⌘
                                    and click on each file you want to upload. 
-                                   Or hold down shift and select the first and last streaming history 
-                                   file to select all streaming history files. This second option will also work on Windows."
+                                   Or select the first streaming history file, hold down shift and select the last streaming history 
+                                   file to select both and all files in between. This second option will also work on Windows."
                                    ))
                         )),
                         fluidRow(
                         column(12,
                                br(),
-                        fileInput("files", "Upload Streaming History File(s)",
+                        fileInput("file_uploads", "Upload Streaming History File(s)",
                                   multiple = TRUE,
                                   accept = c('.json'), 
                                   placeholder = 'No file selected', 
