@@ -1,0 +1,236 @@
+---
+title: "Comparing Fuel Efficiency of Automatic and Manual Transmission Cars (1973–74 models)"
+subtitle: "Coursera Regression Models Final Project"
+author: "Isaac Lello-Smith"
+output: pdf_document
+date: "2025-12-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+library(ggplot2)
+library(ggcorrplot)
+library(cowplot)
+library(tidyr)
+library(forcats)
+```
+
+# Executive Summary
+
+Based on my regression analysis, among 1973-1974 models included in the 1974 Motor Trend US magazine, manual transmissions were better for fuel-efficiency / MPG. On average, manual transmissions among this set of cars got 14.1 more miles per gallon than automatic transmissions. This impact on MPG was significant at the 0.001 level. 
+
+Our final linear model has the formula: mpg ~ am * wt + qsec. Modeling mpg as a function of transmission type, vehicle weight and acceleration speed. The model has an adjusted R-squared of 0.88, and all coefficients were significant at the 0.01 level. 
+
+I selected the model after comparing a set of candidates using an ANOVA. I started from the most basic model of mpg ~ am, then added variables in order of intuitive importance for explaining mpg (while considering collinearity among the variables in the dataset). I also tested models using all variables. The chosen model of mpg ~ am * wt + qsec delivered some of the best explanatory power without including too many of the available variables. 
+
+# Analysis
+
+## Exploratory Data Analysis 
+
+#### Preview Data
+\hfill\break cyl, vs, am and gear will be better represented as categorical variables with 2-3 unique values each. 
+
+```{r explore data - summary, include = FALSE}
+summary(mtcars)
+```
+
+```{r explore data - distributions, include = FALSE}
+scaled_dat <- mtcars %>% 
+  mutate_if(is.numeric, scale) %>% 
+  gather(., cols, value)
+
+ggplot(scaled_dat, aes(x = value)) + 
+  geom_histogram(binwidth = 1) +
+  facet_wrap(.~cols) + 
+  theme_cowplot()
+```
+
+```{r explore data - unique vals, echo = FALSE}
+mtcars %>% 
+  sapply(., function(x) n_distinct(x))
+```
+(Helpful resource: [Analysis Factor Categorical or Continuous](https://www.theanalysisfactor.com/specify-predictor-categorical-or-continuous/))
+
+```{r clean data - set factors, include = FALSE}
+mod_dat <- mtcars %>% 
+  mutate_at(vars(cyl, vs, am, gear), as_factor) 
+```
+
+We can likely leave some variables out of our final model as they are correlated and contain similar information. (see Fig. 1 in the Appendix)
+
+- disp, wt, cyl are all correlated with each other.
+- hp is also correlated with disp and cyl.
+
+```{r explore data - correlations, include = FALSE}
+corr <- cor(mtcars) %>% 
+  round(1)
+
+p_mat <- mtcars %>% 
+  cor_pmat()
+
+ggcorrplot(
+    corr,
+    hc.order = TRUE,
+    type = "upper",
+    outline.col = "white",
+    lab = TRUE, 
+    p.mat = p_mat, 
+    insig = "blank"
+) +
+theme_cowplot() +
+theme(axis.title = element_blank())
+```
+
+\newpage
+
+## Model Fitting 
+
+#### Logical Preparation 
+\hfill\break Before we begin fitting models, lets think about the variables we want to hold constant to isolate the impact of transmission.
+
+- wt comes to mind as the most intuitive inclusion. Heavier cars are going to have lower MPG, so we want to make sure we're not biasing our findings if the average automatic transmission vehicle is heavier than manual or vice versa. wt also seems to capture a lot of the same information as disp and cyl. 
+- qsec seems like a sensible addition, as it accounts for the type of performance a car delivers. If most manual cars are sports cars, we'd expect lower MPG as a trade-off for fast acceleration. 
+- hp may deliver a similar signal to qsec, though it could account for high hp vehicles that are slow, like farm or other work vehicles. (This would likely already be accounted for by wt to some degree). 
+- gear and carb have pretty low correlations across the board, so we may want to include them for explanatory power. (See Fig 1 in Appendix)
+
+#### Least and Most Inclusive Models 
+\hfill\break The simplest model to get at our insights is comparing average mpg for automatic vs. manual. This model shows manual transmissions have an average MPG that is 7.35 MPG higher than automatic transmissions. With an R-squared of 0.34, this model does not explain the system very well. The residual plot also has more curvature than I'd like. 
+
+```{r model building - am, include = FALSE}
+mod_am_wt <- mod_dat %>% 
+    lm(mpg ~ am, .)
+
+#plot(mod_am_wt)
+summary(mod_am_wt)
+```
+
+Including all variables in the model offers better explanatory power, but may muddy the signal around automatic vs. manual transmissions. With all variables included, manual transmissions have an average MPG that is 3.35 MPG higher than automatic transmissions, though the coefficient is not significant. With an R-squared of 0.81 this model explains a lot more of the variability, but we are spamming variables. There is also still some curvature in the residuals plot.
+
+```{r model building - all, include = FALSE}
+mod <- mod_dat %>% 
+    lm(mpg ~ . , .)
+
+#plot(mod)
+summary(mod)
+```
+
+```{r model building - all interaction, include = FALSE}
+mod_intx <- mod_dat %>% 
+    lm(mpg ~ am * wt + . , .)
+
+# plot(mod_intx)
+summary(mod_intx)
+```
+
+#### Model Iteration
+\hfill\break Let's now build out progressively more complicated models, and use an ANOVA to compare the models.  
+
+Including wt removes the impact of automatic or manual transmission, with an R-squared of .74. I don't buy that transmission type doesn't impact MPG, so I added an interaction term. Including the interaction term isolates a major increase in MPG for manual over automatic. Heavier cars reduce MPG in both types of transmissions, with a larger drop for manual vehicles (R-squared 0.82).
+
+```{r model building - am_wt, include = FALSE}
+mod_am_wt <- mod_dat %>% 
+    lm(mpg ~ am + wt, .)
+
+#plot(mod_am_wt)
+summary(mod_am_wt)
+```
+
+```{r model building - am_x_wt, include = FALSE}
+mod_am_x_wt <- mod_dat %>% 
+    lm(mpg ~ am * wt, .)
+
+plot(mod_am_x_wt)
+summary(mod_am_x_wt)
+```
+
+```{r model building - am_x_wt_qsec, include = FALSE}
+mod_am_x_wt_qsec <- mod_dat %>% 
+    lm(mpg ~ am * wt + qsec, .)
+
+plot(mod_am_x_wt_qsec)
+summary(mod_am_x_wt_qsec)
+```
+
+```{r model building - am_x_wt_qsec_hp, include = FALSE}
+mod_am_x_wt_qsec_hp <- mod_dat %>% 
+    lm(mpg ~ am * wt + qsec + hp, .)
+
+plot(mod_am_x_wt_qsec_hp)
+summary(mod_am_x_wt_qsec_hp)
+```
+
+```{r model building - am_wt_qsec_gear_carb, include = FALSE}
+mod_am_x_wt_qsec_gear_carb <- mod_dat %>% 
+    lm(mpg ~ am * wt + qsec + gear + carb, .)
+
+plot(mod_am_x_wt_qsec_gear_carb)
+summary(mod_am_x_wt_qsec_gear_carb)
+```
+
+In line with my thinking in the Logical Preparation section, I added select variables - qsec; qsec and hp; qsec, gear and carb; and all variables with an interaction term between am and wt. I then compared my various models using an ANOVA. 
+
+Based on the ANOVA output (next page), I am going to use Model 3: mpg ~ am * wt + qsec for this analysis. While the model including all variables and an am*wt interaction term has the smallest RSS, the improvement isn't enough to justify adding 7 more variables in my opinion. 
+
+\newpage
+
+```{r model building - compare models, echo = FALSE}
+anova(mod_am_wt, mod_am_x_wt, mod_am_x_wt_qsec,mod_am_x_wt_qsec_hp, mod_am_x_wt_qsec_gear_carb, mod, mod_intx)
+```
+
+#### Final Model Analysis
+
+\hfill\break The chosen model looks face valid. Heavier cars on average have lower MPG. Cars with slower acceleration tend to have higher MPG. Manual transmission cars have a higher MPG on average (14.1 MPG higher) holding weight and acceleration speed constant. 
+
+R-squared is 0.88, and our interaction term for automatic vs. manual transmissions is significant at the 0.001 level. 
+
+```{r model building - summary for chosen, echo = FALSE}
+summary(mod_am_x_wt_qsec)
+```
+
+\newpage
+
+The diagnostic plots for the chosen model look ok (See Fig 2 in Appendix). The residual plots are generally pretty flat. The QQ plot is a bit messy at the extremes, suggesting more extreme values than the normal distribution. But I'm not too worried about the degree of deviation from 1:1. 
+
+(Helpful resource: [UVA diagnostic plots](https://library.virginia.edu/data/articles/diagnostic-plots))
+
+(Helpful resource: [UVA QQ plots](https://library.virginia.edu/data/articles/understanding-q-q-plots))
+
+# Appendix
+
+\hfill\break 
+
+Figure 1
+\hfill\break 
+
+```{r explore data - correlations appendix, echo = FALSE}
+corr <- cor(mtcars) %>% 
+  round(1)
+
+p_mat <- mtcars %>% 
+  cor_pmat()
+
+ggcorrplot(
+    corr,
+    hc.order = TRUE,
+    type = "upper",
+    outline.col = "white",
+    lab = TRUE, 
+    p.mat = p_mat, 
+    insig = "blank"
+) +
+theme_cowplot() +
+theme(axis.title = element_blank())
+```
+
+\newpage
+
+Figure 2
+\hfill\break 
+
+```{r model building - diagnostics for chosen, fig.height=7,fig.width = 8, echo = FALSE}
+par(mfrow=c(2,2))
+plot(mod_am_x_wt_qsec)
+```
+
+

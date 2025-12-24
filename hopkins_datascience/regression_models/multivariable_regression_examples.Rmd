@@ -1,0 +1,156 @@
+---
+title: "multivariate regression model examples"
+output: html_document
+date: "2025-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(datasets)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(cowplot)
+library(stats)
+data(swiss)
+data("InsectSprays")
+```
+
+```{r swiss plot, include=FALSE}
+g = ggpairs(swiss, lower = list(continuous = 'smooth'))
+g
+```
+
+```{r swiss summary regression, include=FALSE}
+summary(lm(Fertility ~ ., data = swiss))$coefficients
+```
+
+```{r swiss model selection, include=FALSE}
+summary(lm(Fertility ~ Agriculture, data = swiss))$coefficients
+```
+
+```{r swiss simulation of effect reversing, include=FALSE}
+n <- 100 
+x2 <- 1:n # could be days
+x1 <- 0.01*x2 + runif(n, -0.1, 0.1) 
+y = - x1 + x2 + rnorm(n, sd = 0.01)
+
+sim_dat <- tibble(y, x1, x2, ey = resid(lm(y~x2)), ex1 = resid(lm(x1~x2)))
+
+summary(lm(y ~ x1))$coef
+summary(lm(y ~ x1 + x2))$coef # notice the effect flips from pos to negative
+
+sim_dat_plot <- ggpairs(sim_dat)
+sim_dat_plot 
+
+sim_dat %>% 
+  ggplot(aes(y = y, x = x1, color = x2)) +
+  geom_smooth(method = lm, se = FALSE, color = "black") +
+  geom_point(size = 3) + 
+  theme_cowplot()
+
+# plotting residuals of ey against ex1. So this is Beta1. Shows that relationship is 
+# negative, and the relationship with x2 has been removed. 
+sim_dat %>% 
+  ggplot(aes(y = ey, x = ex1, color = x2)) +
+  geom_smooth(method = lm, se = FALSE, color = "black") +
+  geom_point(size = 3) + 
+  theme_cowplot()
+```
+
+```{r insect factor inclusion, include=FALSE}
+# nb: this data is not a good fit for regression. Variance is not equal, data bounded by zero
+# Poisson GLM probably a better fit here
+
+InsectSprays %>% 
+  ggplot(aes(y = count, x = spray, fill = spray)) + 
+  geom_violin(color = 'black', size = 1) + 
+  xlab('type of spray') + ylab('insect count')
+```
+
+```{r insect factor regression, include=FALSE}
+InsectSprays %>% 
+  lm(count ~ spray, .) %>% 
+  summary()
+
+InsectSprays %>% 
+lm(count ~ 
+     I(1 * (spray == 'B')) +
+     I(1 * (spray == 'C')) +
+     I(1 * (spray == 'D')) + 
+     I(1 * (spray == 'E')) +
+     I(1 * (spray == 'F')), 
+  data = .
+     ) %>% 
+  summary()
+
+# question - what does it mean to remove the intercept in a multivariate model 
+# with factor variables and continuous?
+
+
+# with this all factor regression, when you remove intercept the stat sig is now
+# is average different than zero for each group?
+InsectSprays %>% 
+lm(count ~ spray - 1, 
+  data = .
+     ) %>% 
+  summary()
+
+# relevel example - C is now the reference level
+InsectSprays %>% 
+  mutate(spray2 = relevel(spray, "C")) %>%
+  lm(count ~ spray2, 
+  data = .
+     ) %>% 
+  summary()
+```
+```{r swiss ANCOVA, include=FALSE}
+swiss <- swiss %>% 
+  mutate(catholic_bin = 1 * (Catholic > 50))
+
+base_plot <- swiss %>% 
+  ggplot(aes(x = Agriculture, y = Fertility, color = catholic_bin)) + 
+  geom_point() + 
+  theme_cowplot()
+
+fit1 <- 
+  swiss %>% 
+  lm(Fertility ~ Agriculture, .)
+
+# making bimodal binary
+fit2 <- 
+  swiss %>% 
+  lm(Fertility ~ Agriculture + factor(catholic_bin), .)
+
+# interaction
+# if include interaction, generally want to include main effects
+fit3 <- 
+  swiss %>% 
+  lm(Fertility ~ Agriculture * factor(catholic_bin), .)
+
+base_plot +
+  geom_abline(intercept = coef(fit3)[1], slope = coef(fit3)[2], size = 1) + 
+  geom_abline(intercept = coef(fit3)[1] + coef(fit3)[3], slope = coef(fit3)[2] + coef(fit3)[4], size = 1) 
+```
+
+```{r adjustment, include=FALSE}
+# simpsons paradox 
+# look at effect of x1 on Y, and it has one effect. Add a new variable x2, and the effect of 
+# x1 reverses. 
+
+# in other words - things can change to the exact opposite when you perform adjustment 
+
+# be careful about assuming the slope effect is the same if the variables have 
+# very different slopes. e.g. an X shape in the data
+
+# plotting residuals can help you understand the relationship with other variables removed
+# resid(lm(y ~ X2)) vs. resid(lm(X1 ~ X2))
+```
+
+```{r swiss diagnostics, include=FALSE}
+
+fit <- swiss %>% 
+  lm(Fertility ~ ., data = .)
+
+plot(fit)
+```
